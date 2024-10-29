@@ -17300,7 +17300,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-10-29T14:31:06.892Z",
+  "updatedAt": "2024-10-29T16:43:14.152Z",
   "devdoc": {
     "errors": {
       "ERC20InsufficientAllowance(address,uint256,uint256)": [
