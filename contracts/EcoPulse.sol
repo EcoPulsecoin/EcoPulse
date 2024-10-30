@@ -10,6 +10,9 @@ contract EcoPulse is ERC20 {
     uint256 public burnPercentage = 1; // 1% dos tokens queimados
     mapping(address => bool) public isExcludedFromTax; // Mapeia endereços excluídos da taxa
 
+    // Endereço do contrato USDT na Binance Smart Chain
+    address public usdtTokenAddress = 0x404fE53D4667fee1AF3086802550EF729567a920;
+
     // Eventos para rastreamento
     event TaxPaid(address indexed from, uint256 amount); // Evento para taxas pagas
     event TokensBurned(address indexed from, uint256 amount); // Evento para tokens queimados
@@ -117,8 +120,15 @@ contract EcoPulse is ERC20 {
     }
 
     // Função para retirar BNB acumulado pelo dono
-    function withdraw() external onlyOwner {
+    function withdrawBNB() external onlyOwner {
         payable(owner).transfer(address(this).balance); // Retira o saldo acumulado em BNB
     }
-}
 
+    // Função para retirar USDT acumulado pelo dono
+    function withdrawUSDT() external onlyOwner {
+        IERC20 usdtToken = IERC20(usdtTokenAddress);
+        uint256 usdtBalance = usdtToken.balanceOf(address(this));
+        require(usdtBalance > 0, "Sem saldo de USDT para retirar");
+        usdtToken.transfer(owner, usdtBalance); // Transfere o saldo de USDT para o proprietário
+    }
+}
