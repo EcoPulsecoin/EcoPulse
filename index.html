@@ -74,8 +74,6 @@
     <h2>Pré-Venda do EcoPulse</h2>
     <p>A pré-venda do EcoPulse ocorrerá de <strong>1 de novembro de 2024</strong> a <strong>15 de novembro de 2024</strong>.</p>
     <p>Os primeiros 500 investidores terão um desconto de <strong>20%</strong> no preço do token!</p>
-    <p>Para participar, preencha o formulário abaixo:</p>
-    
     <form id="pre-venda-form">
         <label for="name">Nome:</label>
         <input type="text" id="name" name="name" required>
@@ -94,7 +92,6 @@
     <h2>Comprar Tokens EcoPulse</h2>
     <p>Digite a quantidade de tokens que deseja comprar:</p>
     <div class="chat-container" id="chat-container">
-        <!-- Área de chat para mensagens -->
     </div>
     <div class="input-container">
         <input type="number" id="quantidade" name="quantidade" min="1" placeholder="Quantidade de Tokens" required>
@@ -147,7 +144,7 @@
 
 <script>
     document.getElementById("pre-venda-form").onsubmit = function(event) {
-        event.preventDefault(); // Previne o envio padrão do formulário
+        event.preventDefault();
         alert("Inscrição na pré-venda realizada com sucesso!");
     };
 
