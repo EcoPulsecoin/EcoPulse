@@ -162,21 +162,15 @@
     };
 
     document.getElementById("comprar-button").onclick = function() {
-        const quantidade = document.getElementById("quantidade").value;
         const moeda = document.getElementById("moeda").value;
         const chave = document.getElementById("chave").value;
-        const status = document.getElementById("status");
-        
-        if (quantidade > 0) {
-            status.innerText = `Você comprou ${quantidade} tokens EcoPulse com sucesso usando ${moeda}! A chave para recebimento é: ${chave}`;
-            const chatContainer = document.getElementById("chat-container");
-            const mensagem = document.createElement("div");
-            mensagem.className = "chat-message user-message";
-            mensagem.innerText = `Você solicitou ${quantidade} tokens com a moeda ${moeda}.`;
-            chatContainer.appendChild(mensagem);
-        } else {
-            status.innerText = "Por favor, insira uma quantidade válida.";
-        }
+        const quantidade = document.getElementById("quantidade").value;
+
+        // Aqui você pode implementar a lógica para efetuar a compra de tokens
+        // ...
+
+        // Exibir mensagem de sucesso
+        document.getElementById("status").innerText = `Você comprou ${quantidade} tokens com ${moeda}. Tokens serão enviados para: ${chave}.`;
     };
 </script>
 
