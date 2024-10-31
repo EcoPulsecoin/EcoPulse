@@ -100,6 +100,7 @@
     <div class="input-container">
         <label for="moeda">Escolha a Moeda:</label>
         <select id="moeda" name="moeda" required>
+            <option value="">Selecione uma moeda</option>
             <option value="BNB">BNB</option>
             <option value="USDT">USDT</option>
         </select>
@@ -155,23 +156,171 @@
     <p>© 2024 EcoPulse. Todos os direitos reservados.</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.5.2.umd.min.js"></script>
 <script>
-    document.getElementById("pre-venda-form").onsubmit = function(event) {
-        event.preventDefault(); // Previne o envio padrão do formulário
-        alert("Inscrição na pré-venda realizada com sucesso!");
-    };
+// ABI do contrato EcoPulse
+const ecoPulseABI = [
+    {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "allowance",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "needed",
+                "type": "uint256"
+            }
+        ],
+        "name": "ERC20InsufficientAllowance",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "TransferFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "TransferFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "TransferFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "TransferFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "recipient",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+];
 
-    document.getElementById("comprar-button").onclick = function() {
-        const moeda = document.getElementById("moeda").value;
-        const chave = document.getElementById("chave").value;
-        const quantidade = document.getElementById("quantidade").value;
+// Exemplo de implementação do método de compra
+document.getElementById("comprar-button").addEventListener("click", async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
 
-        // Aqui você pode implementar a lógica para efetuar a compra de tokens
-        // ...
+    const contractAddress = '0xSeuContratoEcoPulseAqui'; // Insira o endereço do contrato aqui
+    const contract = new ethers.Contract(contractAddress, ecoPulseABI, signer);
 
-        // Exibir mensagem de sucesso
-        document.getElementById("status").innerText = `Você comprou ${quantidade} tokens com ${moeda}. Tokens serão enviados para: ${chave}.`;
-    };
+    const quantidade = document.getElementById("quantidade").value;
+    const chave = document.getElementById("chave").value;
+
+    try {
+        const tx = await contract.transfer(chave, quantidade);
+        await tx.wait();
+        document.getElementById("status").innerText = 'Tokens comprados com sucesso!';
+    } catch (error) {
+        console.error(error);
+        document.getElementById("status").innerText = 'Erro ao comprar tokens. Veja o console para mais detalhes.';
+    }
+});
 </script>
 
 </body>
