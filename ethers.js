@@ -25,4 +25,3 @@ checkBalance().catch((error) => {
 });
 
 // Aqui você pode adicionar outras funções para interagir com contratos inteligentes, enviar transações, etc.
-
