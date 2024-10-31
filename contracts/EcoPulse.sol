@@ -3,6 +3,7 @@ pragma solidity ^0.8.21;
 
 // Importa a implementação do token ERC20 da biblioteca OpenZeppelin
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; // Importa a interface IERC20
 
 contract EcoPulse is ERC20 {
     address public owner; // Armazena o endereço do proprietário
@@ -25,7 +26,7 @@ contract EcoPulse is ERC20 {
 
     // Modificador onlyOwner para restringir funções ao proprietário
     modifier onlyOwner() {
-        require(msg.sender == owner, "Somente o proprietário pode executar esta funcao");
+        require(msg.sender == owner, "Somente o proprietario pode executar esta funcao");
         _;
     }
 
@@ -53,7 +54,7 @@ contract EcoPulse is ERC20 {
 
     // Função para finalizar a pré-venda e distribuir os tokens
     function finalizePreSale() external onlyOwner {
-        require(block.timestamp >= preSaleEndTime, "A pre-venda ainda está em andamento");
+        require(block.timestamp >= preSaleEndTime, "A pre-venda ainda esta em andamento");
 
         for (uint256 i = 0; i < getAllContributors().length; i++) { // Loop através de todos os contribuintes
             address account = getAllContributors()[i];
@@ -68,8 +69,8 @@ contract EcoPulse is ERC20 {
 
     // Função para retornar todos os contribuintes (para exemplo, pode ser otimizado)
     function getAllContributors() internal view returns (address[] memory) {
-        // Implemente lógica para retornar todos os contribuintes
-        // Isso pode ser armazenado em um array ou mapeamento dependendo da sua necessidade
+        // Você pode implementar lógica para armazenar e retornar todos os contribuintes
+        // Isso pode ser feito armazenando os endereços em um array durante a compra
     }
 
     // Função de transferência com lógica de taxa e queima
