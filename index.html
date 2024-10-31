@@ -111,7 +111,9 @@
         <label for="chave">Chave da Carteira para Receber Tokens:</label>
         <input type="text" id="chave" name="chave" placeholder="Insira sua chave" required>
         
+        <label for="quantidade">Quantidade de Tokens:</label>
         <input type="number" id="quantidade" name="quantidade" min="1" placeholder="Quantidade de Tokens" required>
+        
         <button id="comprar-button">Comprar Tokens</button>
     </div>
     <p id="status"></p>
@@ -161,70 +163,103 @@
 
 <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.5.2.umd.min.js"></script>
 <script>
-// Preço do token em BNB
-const tokenPrice = 0.1; // Defina o preço do token aqui (exemplo: 0.1 BNB)
+// Preços do token
+const tokenPriceBNB = 0.0005; // Preço em BNB
+const tokenPriceUSDT = 0.30; // Preço em USDT
 
 function calculateTokens() {
     const investment = parseFloat(document.getElementById('investment').value);
-    const tokensToReceive = investment / tokenPrice; // Calculo de tokens
-    document.getElementById('amount').value = tokensToReceive.toFixed(2); // Atualiza o campo de quantidade de tokens
+    const tokensToReceive = investment / tokenPriceBNB; // Cálculo de tokens
+    document.getElementById('amount').value = tokensToReceive.toFixed(0);
 }
 
-// ABI do contrato EcoPulse
-const ecoPulseABI = [
-    // Coloque aqui sua ABI
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "transfer",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    // Adicione outras funções da sua ABI conforme necessário
-];
+async function buyTokensBNB(amount) {
+    if (!window.ethereum) {
+        alert('MetaMask não está instalada. Instale e tente novamente.');
+        return;
+    }
 
-// Endereço do contrato EcoPulse
-const ecoPulseAddress = 'SEU_ENDERECO_DO_CONTRATO'; // Insira o endereço do seu contrato aqui
-
-document.getElementById('comprar-button').onclick = async function() {
-    // Solicitar acesso à MetaMask
     await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    const quantidade = document.getElementById('quantidade').value;
-    const chave = document.getElementById('chave').value;
-
-    // Criar um provedor e uma assinatura
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
+    const contractAddress = '0xSeuContratoAqui'; // Endereço do contrato do EcoPulse
+    const contractABI = [ /* ABI do contrato aqui */ ];
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-    // Instanciar o contrato EcoPulse
-    const ecoPulseContract = new ethers.Contract(ecoPulseAddress, ecoPulseABI, signer);
+    // Conversão do valor para Wei (1 BNB = 10^18 Wei)
+    const value = ethers.utils.parseEther(amount.toString());
 
-    // Valor em Wei
-    const pricePerToken = ethers.utils.parseUnits(tokenPrice.toString(), 'ether'); // Preço em Wei
-    const totalCost = pricePerToken.mul(quantidade); // Custo total em Wei
-
-    // Executar a transação para comprar tokens
     try {
-        const tx = await ecoPulseContract.transfer(chave, quantidade);
+        const tx = await contract.buyTokens({
+            value: value // Transação com valor em BNB
+        });
         await tx.wait();
-        document.getElementById('status').innerText = `Tokens comprados com sucesso! Transação: ${tx.hash}`;
+        alert('Tokens comprados com sucesso!');
     } catch (error) {
         console.error(error);
-        document.getElementById('status').innerText = `Erro: ${error.message}`;
+        alert('Erro ao comprar tokens. Tente novamente.');
     }
-};
+}
+
+async function buyTokensUSDT(amount, walletAddress) {
+    if (!window.ethereum) {
+        alert('MetaMask não está instalada. Instale e tente novamente.');
+        return;
+    }
+
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contractAddress = '0xSeuContratoUSDT'; // Endereço do contrato do USDT
+    const contractABI = [ /* ABI do contrato USDT aqui */ ];
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+    const tokenAmount = ethers.utils.parseUnits(amount.toString(), 6); // 6 decimais para USDT
+
+    try {
+        // Aprovar o contrato para gastar os USDT do usuário
+        const approveTx = await contract.approve(contractAddress, tokenAmount);
+        await approveTx.wait();
+
+        const buyTx = await contract.buyTokens(walletAddress, tokenAmount);
+        await buyTx.wait();
+        alert('Tokens comprados com sucesso!');
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao comprar tokens. Tente novamente.');
+    }
+}
+
+// Comprar tokens
+document.getElementById('comprar-button').addEventListener('click', async () => {
+    const moeda = document.getElementById('moeda').value;
+    const chave = document.getElementById('chave').value;
+    const quantidade = document.getElementById('quantidade').value;
+
+    if (!moeda) {
+        alert('Por favor, selecione uma moeda.');
+        return;
+    }
+
+    if (moeda === "BNB") {
+        await buyTokensBNB(quantidade);
+    } else if (moeda === "USDT") {
+        await buyTokensUSDT(quantidade, chave);
+    }
+});
+
+// Enviar formulário de pré-venda
+document.getElementById('pre-venda-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    alert('Obrigado por participar da pré-venda!');
+});
+
+// Enviar formulário de contato
+document.getElementById('contato-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    alert('Sua mensagem foi enviada!');
+});
 </script>
+
 </body>
 </html>
