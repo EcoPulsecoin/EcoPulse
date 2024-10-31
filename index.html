@@ -83,8 +83,11 @@
         <label for="email">E-mail:</label>
         <input type="email" id="email" name="email" required>
         
-        <label for="amount">Quantidade de Tokens Desejada:</label>
-        <input type="number" id="amount" name="amount" min="1" required>
+        <label for="investment">Valor a Investir (em BNB):</label>
+        <input type="number" id="investment" name="investment" min="0.1" required step="0.1" onchange="calculateTokens()">
+        
+        <label for="amount">Quantidade de Tokens a Receber:</label>
+        <input type="number" id="amount" name="amount" readonly>
         
         <input type="submit" value="Participar da Pré-Venda">
     </form>
@@ -158,128 +161,23 @@
 
 <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.5.2.umd.min.js"></script>
 <script>
+// Preço do token em BNB
+const tokenPrice = 0.1; // Defina o preço do token aqui (exemplo: 0.1 BNB)
+
+function calculateTokens() {
+    const investment = parseFloat(document.getElementById('investment').value);
+    const tokensToReceive = investment / tokenPrice; // Calculo de tokens
+    document.getElementById('amount').value = tokensToReceive.toFixed(2); // Atualiza o campo de quantidade de tokens
+}
+
 // ABI do contrato EcoPulse
 const ecoPulseABI = [
-    {
-        "inputs": [],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "allowance",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "needed",
-                "type": "uint256"
-            }
-        ],
-        "name": "ERC20InsufficientAllowance",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "TransferFailed",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "TransferFailed",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "TransferFailed",
-        "type": "error"
-    },
+    // Coloque aqui sua ABI
     {
         "inputs": [
             {
                 "internalType": "address",
                 "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "TransferFailed",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "mint",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "totalSupply",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "recipient",
                 "type": "address"
             },
             {
@@ -289,39 +187,44 @@ const ecoPulseABI = [
             }
         ],
         "name": "transfer",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
+        "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
-    }
+    },
+    // Adicione outras funções da sua ABI conforme necessário
 ];
 
-// Exemplo de implementação do método de compra
-document.getElementById("comprar-button").addEventListener("click", async () => {
+// Endereço do contrato EcoPulse
+const ecoPulseAddress = 'SEU_ENDERECO_DO_CONTRATO'; // Insira o endereço do seu contrato aqui
+
+document.getElementById('comprar-button').onclick = async function() {
+    // Solicitar acesso à MetaMask
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+    const quantidade = document.getElementById('quantidade').value;
+    const chave = document.getElementById('chave').value;
+
+    // Criar um provedor e uma assinatura
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
 
-    const contractAddress = '0xSeuContratoEcoPulseAqui'; // Insira o endereço do contrato aqui
-    const contract = new ethers.Contract(contractAddress, ecoPulseABI, signer);
+    // Instanciar o contrato EcoPulse
+    const ecoPulseContract = new ethers.Contract(ecoPulseAddress, ecoPulseABI, signer);
 
-    const quantidade = document.getElementById("quantidade").value;
-    const chave = document.getElementById("chave").value;
+    // Valor em Wei
+    const pricePerToken = ethers.utils.parseUnits(tokenPrice.toString(), 'ether'); // Preço em Wei
+    const totalCost = pricePerToken.mul(quantidade); // Custo total em Wei
 
+    // Executar a transação para comprar tokens
     try {
-        const tx = await contract.transfer(chave, quantidade);
+        const tx = await ecoPulseContract.transfer(chave, quantidade);
         await tx.wait();
-        document.getElementById("status").innerText = 'Tokens comprados com sucesso!';
+        document.getElementById('status').innerText = `Tokens comprados com sucesso! Transação: ${tx.hash}`;
     } catch (error) {
         console.error(error);
-        document.getElementById("status").innerText = 'Erro ao comprar tokens. Veja o console para mais detalhes.';
+        document.getElementById('status').innerText = `Erro: ${error.message}`;
     }
-});
+};
 </script>
-
 </body>
 </html>
