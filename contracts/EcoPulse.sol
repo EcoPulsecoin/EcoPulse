@@ -1,135 +1,83 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.0;
 
-// Importa a implementação do token ERC20 da biblioteca OpenZeppelin
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol"; // Importa o Ownable corretamente
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; // Importa a interface IERC20
 
-contract EcoPulse is ERC20 {
-    address public owner; // Armazena o endereço do proprietário
-    uint256 public taxPercentage = 2; // 2% de taxa
-    uint256 public burnPercentage = 1; // 1% dos tokens queimados
-    mapping(address => bool) public isExcludedFromTax; // Mapeia endereços excluídos da taxa
+contract EcoPulse is Ownable {
+    string public name = "EcoPulse";
+    string public symbol = "ECO";
+    uint8 public decimals = 18;
+    uint256 public totalSupply;
 
-    // Endereço do contrato USDT na Binance Smart Chain
-    address public usdtTokenAddress = 0x404fE53D4667fee1AF3086802550EF729567a920;
+    address public publicSaleAddress = 0x678588c560EC4CCbE2Fa0bF69b7E62A3Ce831985;
+    address public projectFundingAddress = 0x5cFa3E73d534f768DC3a56E07505E39707A2b958;
+    address public sustainabilityChallengesAddress = 0xBcec487543db5b306BB0b19002eABA4c2FA8cA80; // Endereço para sustentabilidade
 
-    // Eventos para rastreamento
-    event TaxPaid(address indexed from, uint256 amount); // Evento para taxas pagas
-    event TokensBurned(address indexed from, uint256 amount); // Evento para tokens queimados
-    event PreSaleStarted(uint256 endTime); // Evento para início da pré-venda
-    event TokensDistributed(address indexed recipient, uint256 amount); // Evento para distribuição de tokens
-
-    // Variáveis da pré-venda
+    uint256 public preSaleStartTime;
     uint256 public preSaleEndTime;
-    mapping(address => uint256) public contributions;
+    uint256 public tokenPriceBNBPreSale = 0.00035 ether; // Preço em BNB para pré-venda
+    uint256 public tokenPriceUSDTPreSale = 201 * 10 ** 16; // 2.01 USDT em wei
+    uint256 public tokenPriceBNBPublicSale = 0.01 ether; // Preço em BNB para venda pública
+    uint256 public tokenPriceUSDTPublicSale = 575 * 10 ** 16; // 5.75 USDT em wei
 
-    // Modificador onlyOwner para restringir funções ao proprietário
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Somente o proprietario pode executar esta funcao");
-        _;
+    address public USDTContractAddress;
+    mapping(address => uint256) public balances;
+    bool public preSaleEnded = false;
+
+    constructor(uint256 _totalSupply, address _USDTContractAddress) 
+        Ownable(0xBcec487543db5b306BB0b19002eABA4c2FA8cA80) { // Passando o endereço do proprietário
+        totalSupply = _totalSupply;
+        USDTContractAddress = _USDTContractAddress;
+        _distributeTokens();
+
+        preSaleStartTime = 1738963200; // 6 de novembro de 2024
+        preSaleEndTime = 1701388800;   // 1 de dezembro de 2024
     }
 
-    // Construtor do contrato
-    constructor() ERC20("EcoPulse", "ECO") {
-        owner = msg.sender; // Define o proprietário inicial como o criador do contrato
-        _mint(address(this), 2000000 * 10 ** decimals()); // Mintar 2 milhões de tokens para a venda
-        isExcludedFromTax[msg.sender] = true; // Excluir o criador do contrato das taxas
+    function _distributeTokens() internal {
+        uint256 distributionTokens = (totalSupply * 30) / 100;
+        uint256 projectFundingTokens = (distributionTokens * 20) / 30;
+        uint256 sustainabilityTokens = (distributionTokens * 5) / 30;
+
+        balances[publicSaleAddress] = distributionTokens;
+        balances[projectFundingAddress] = projectFundingTokens;
+        balances[sustainabilityChallengesAddress] = sustainabilityTokens;
     }
 
-    // Função para iniciar a pré-venda
-    function startPreSale(uint256 duration) external onlyOwner {
-        preSaleEndTime = block.timestamp + duration; // Define o tempo de término da pré-venda
-        emit PreSaleStarted(preSaleEndTime); // Emitir evento de início da pré-venda
+    function buyTokensWithBNB() external payable {
+        require(block.timestamp >= preSaleStartTime && block.timestamp <= preSaleEndTime, "Fora do periodo de pre-venda.");
+
+        uint256 price = preSaleEnded ? tokenPriceBNBPublicSale : tokenPriceBNBPreSale;
+        uint256 tokensToBuy = msg.value / price;
+        require(tokensToBuy > 0, "Valor de compra insuficiente.");
+
+        balances[msg.sender] += tokensToBuy;
     }
 
-    // Função de compra de tokens durante a pré-venda
-    function buyTokens() external payable {
-        require(block.timestamp < preSaleEndTime, "A pre-venda acabou");
-        require(msg.value > 0, "Envie BNB para comprar tokens");
+    function buyTokensWithUSDT(uint256 amount) external {
+        require(block.timestamp >= preSaleStartTime && block.timestamp <= preSaleEndTime, "Fora do periodo de pre-venda.");
 
-        uint256 tokensToTransfer = msg.value; // Defina a taxa de câmbio como desejado
-        contributions[msg.sender] += tokensToTransfer;
+        uint256 price = preSaleEnded ? tokenPriceUSDTPublicSale : tokenPriceUSDTPreSale;
+        uint256 tokensToBuy = amount / price;
+        require(tokensToBuy > 0, "Valor de compra insuficiente.");
+
+        IERC20(USDTContractAddress).transferFrom(msg.sender, address(this), amount);
+        balances[msg.sender] += tokensToBuy;
     }
 
-    // Função para finalizar a pré-venda e distribuir os tokens
-    function finalizePreSale() external onlyOwner {
-        require(block.timestamp >= preSaleEndTime, "A pre-venda ainda esta em andamento");
-
-        for (uint256 i = 0; i < getAllContributors().length; i++) { // Loop através de todos os contribuintes
-            address account = getAllContributors()[i];
-            uint256 amount = contributions[account];
-            if (amount > 0) {
-                _transfer(address(this), account, amount); // Transferir tokens para o contribuinte
-                emit TokensDistributed(account, amount); // Emitir evento de distribuição de tokens
-                contributions[account] = 0; // Zerar a contribuição após a transferência
-            }
-        }
+    function endPreSale() external onlyOwner {
+        require(block.timestamp > preSaleEndTime, "A pre-venda ainda esta ativa.");
+        preSaleEnded = true;
     }
 
-    // Função para retornar todos os contribuintes (para exemplo, pode ser otimizado)
-    function getAllContributors() internal view returns (address[] memory) {
-        // Você pode implementar lógica para armazenar e retornar todos os contribuintes
-        // Isso pode ser feito armazenando os endereços em um array durante a compra
-    }
-
-    // Função de transferência com lógica de taxa e queima
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
-        require(amount > 0, "O valor deve ser maior que zero");
-        require(amount <= balanceOf(msg.sender), "Saldo insuficiente");
-
-        uint256 tax = (amount * taxPercentage) / 100; // Calcula a taxa
-        uint256 burnAmount = (amount * burnPercentage) / 100; // Calcula a quantidade a queimar
-        uint256 transferAmount = amount - tax - burnAmount; // Quantidade a ser transferida
-
-        require(transferAmount > 0, "Transferencia resultara em valor negativo");
-
-        // Se a taxa for maior que zero e o remetente não estiver excluído da taxa
-        if (tax > 0 && !isExcludedFromTax[msg.sender]) {
-            _transfer(msg.sender, owner, tax); // Envia a taxa para o proprietário
-            emit TaxPaid(msg.sender, tax); // Emitir evento de taxa paga
-        }
-
-        // Se houver tokens a serem queimados
-        if (burnAmount > 0) {
-            _burn(msg.sender, burnAmount); // Queimar tokens
-            emit TokensBurned(msg.sender, burnAmount); // Emitir evento de tokens queimados
-        }
-
-        _transfer(msg.sender, recipient, transferAmount); // Transferir o restante
-        return true; // Retorna verdadeiro se a transferência for bem-sucedida
-    }
-
-    // Função para excluir um endereço da taxa
-    function excludeFromTax(address account) external onlyOwner {
-        isExcludedFromTax[account] = true;
-    }
-
-    // Função para incluir um endereço na taxa
-    function includeInTax(address account) external onlyOwner {
-        isExcludedFromTax[account] = false;
-    }
-
-    // Função para alterar a porcentagem da taxa
-    function setTaxPercentage(uint256 newTaxPercentage) external onlyOwner {
-        taxPercentage = newTaxPercentage;
-    }
-
-    // Função para alterar a porcentagem da queima
-    function setBurnPercentage(uint256 newBurnPercentage) external onlyOwner {
-        burnPercentage = newBurnPercentage;
-    }
-
-    // Função para retirar BNB acumulado pelo dono
     function withdrawBNB() external onlyOwner {
-        payable(owner).transfer(address(this).balance); // Retira o saldo acumulado em BNB
+        uint256 bnbBalance = address(this).balance;
+        payable(publicSaleAddress).transfer(bnbBalance);
     }
 
-    // Função para retirar USDT acumulado pelo dono
     function withdrawUSDT() external onlyOwner {
-        IERC20 usdtToken = IERC20(usdtTokenAddress);
-        uint256 usdtBalance = usdtToken.balanceOf(address(this));
-        require(usdtBalance > 0, "Sem saldo de USDT para retirar");
-        usdtToken.transfer(owner, usdtBalance); // Transfere o saldo de USDT para o proprietário
+        uint256 usdtBalance = IERC20(USDTContractAddress).balanceOf(address(this));
+        IERC20(USDTContractAddress).transfer(publicSaleAddress, usdtBalance);
     }
 }
