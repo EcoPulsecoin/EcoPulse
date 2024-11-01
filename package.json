@@ -25,5 +25,8 @@
     "solidity-coverage": "^0.8.13",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2"
+  },
+  "resolutions": {
+    "web3": "^4.14.0"
   }
 }
