@@ -2,19 +2,16 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-    // Obtém o contrato
     const EcoPulse = await ethers.getContractFactory("EcoPulse");
-    
-    // Implanta o contrato
-    const ecoPulse = await EcoPulse.deploy(); // Não passe parâmetros desnecessários
-    
-    // Aguarde a transação ser minerada
+    const totalSupply = ethers.utils.parseUnits("2000000", 18); // Supondo que você tenha 2 milhões de tokens com 18 casas decimais
+    const USDTContractAddress = "0x524bC91Dc82d6b90EF29F76A3ECAaBAffFD490Bc"; // Substitua pelo endereço real do contrato USDT
+
+    const ecoPulse = await EcoPulse.deploy(totalSupply, USDTContractAddress);
     await ecoPulse.deployed();
 
-    console.log("Contrato EcoPulse implantado em:", ecoPulse.address);
+    console.log("EcoPulse deployed to:", ecoPulse.address);
 }
 
-// Executa a função principal
 main()
     .then(() => process.exit(0))
     .catch((error) => {
